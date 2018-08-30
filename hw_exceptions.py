@@ -10,7 +10,6 @@ def stderr_redirect(dest=None):
         class wrapper:
 
             def __call__(self, *args, **kwargs):
-                print('call', args)
                 return func(*args, *kwargs)
 
             def __enter__(self):
