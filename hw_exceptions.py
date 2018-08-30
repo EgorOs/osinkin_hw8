@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import sys
+import os
+
 
 def stderr_redirect(dest=None):
 
@@ -18,24 +20,28 @@ def stderr_redirect(dest=None):
                 if exc_type is None:
                     return False
                 elif dest is None:
-                    print(exc_type)
+                    pass
                 else:
-                    f = open(dest, 'w')
-                    f.write(str(exc_value))
-                    f.close()
+                    sys.stderr = open(dest, 'w')
 
         return wrapper()
     
     return inner_decorator
 
 
-@stderr_redirect('test.txt')
-def test(val_1, val_2):
-    return val_1/val_2
+class pidfile:
 
-# @stderr_redirect(dest=None)
-# def test():
-#     pass
+    def __init__(self, file_name: str):
+        self.file_name = file_name
+        if not os.path.isfile(file_name):
+            # Create temporary pidfile
+            open(file_name, 'a').close()
+        else:
+            raise IOError('The instance of this code is already ran by another process.')
 
-with test as t:
-    res = test(1,0)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        # Remove temporary pidfile
+        os.remove(self.file_name)
