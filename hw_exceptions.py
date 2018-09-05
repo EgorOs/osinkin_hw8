@@ -17,24 +17,23 @@ def stderr_redirect(dest=None):
                 previous destination.
                 '''
                 prev_dest = sys.stderr.name
-                if dest is None:
-                    sys.stderr = sys.__stdout__
-                    result = func(*args, *kwargs)
-                    if prev_dest != sys.__stderr__.name and prev_dest != sys.__stdout__.name:
-                        sys.stderr = open(prev_dest, 'a')
-                    return result
 
-                elif prev_dest is sys.__stdout__.name:
+                if dest is None:
+                    # redirect if dest is None
                     sys.stderr = sys.__stdout__
-                    result = func(*args, *kwargs)
-                    if prev_dest != sys.__stderr__.name and prev_dest != sys.__stdout__.name:
-                        sys.stderr = open(prev_dest, 'a')
                 else:
+                    # redirect if dest is file
                     sys.stderr = open(dest, 'a')
-                    result = func(*args, *kwargs)
-                    if prev_dest != sys.__stderr__.name and prev_dest != sys.__stdout__.name:
-                        sys.stderr = open(prev_dest, 'a')
-                    return result
+
+                result = func(*args, *kwargs)
+
+                if prev_dest != sys.__stderr__.name and prev_dest != sys.__stdout__.name:
+                    # return stderr to the previous state if it was not stdout
+                    sys.stderr = open(prev_dest, 'a')
+                elif prev_dest is sys.__stdout__.name:
+                    # return stderr to the previous state if it was stdout
+                    sys.stderr = sys.__stdout__
+                return result
 
             def __enter__(self):
                 return self
@@ -42,10 +41,9 @@ def stderr_redirect(dest=None):
             def __exit__(self, exc_type, exc_value, exc_tb):
                 if exc_type is None:
                     return False
-                elif dest is None:
-                    pass
                 else:
-                    sys.__stderr__
+                    # reset stderr back to normal
+                    sys.stderr = sys.__stderr__
 
         return Wrapper()
     
