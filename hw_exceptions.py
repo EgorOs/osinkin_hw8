@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
-
+import time
 
 def stderr_redirect(dest=None):
 
@@ -54,11 +54,34 @@ class pidfile:
 
     def __init__(self, file_name: str):
         self.file_name = file_name
+
+        if '/' in file_name:
+            # if path to directory is given
+            path = file_name.split('/')
+            file_name = path.pop(-1)
+            path = '/'.join(path) + '/'
+            os.chdir(path)
+
         if not os.path.isfile(file_name):
             # Create temporary pidfile
-            open(file_name, 'a').close()
+            f = open(file_name, 'w')
+            f.write(str(os.getpid()))
+            f.close()
+
         else:
-            raise IOError('The instance of this code is already ran by another process.')
+            # pid file already exists
+            pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+            f = open(file_name, 'r')
+            for line in f:
+            # check if pid of the original process is still exists
+                if line in pids:
+                    f.close()
+                    raise OSError('The instance of this code is already ran by another process.')
+                else:
+                    # write a new pid
+                    f = open(file_name, 'w')
+                    f.write(str(os.getpid()))
+                    f.close()
 
     def __enter__(self):
         return self
@@ -68,6 +91,7 @@ class pidfile:
         os.remove(self.file_name)
 
 
+# Tests
 @stderr_redirect(dest='file1')
 def test1():
     sys.stderr.write('test1 func\n')
@@ -81,6 +105,11 @@ def test2():
     test1()
     return 10
 
+def slow_func():
+    print('Running slow_func with pid: {}'.format(os.getpid()))
+    time.sleep(60)
 
-test1()
-test2()
+# test1()
+# test2()
+# with pidfile('/home/egor/epam/homework/osinkin_hw8/pidfile.txt'):
+#     slow_func()
